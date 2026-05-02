@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h1>📊 Academic Dashboard</h1>
+  
+  <div class="user-info">
+    <strong>👤 User:</strong> {{ user["username"] }}
+    <strong>🎓 Role:</strong> {% if user["role"] == "admin" %}<span style="color: #dc2626;">Admin</span>{% else %}<span style="color: #10b981;">Student</span>{% endif %}
+  </div>
+
+  <h2>📈 Performance Summary</h2>
+  <div class="grid">
+    <div class="metric">
+      <span>GPA Score</span>
+      <strong>{{ summary.gpa }}/10</strong>
+    </div>
+    <div class="metric">
+      <span>Average Marks</span>
+      <strong>{{ summary.average_marks }}%</strong>
+    </div>
+    <div class="metric">
+      <span>Average Attendance</span>
+      <strong>{{ summary.average_attendance }}%</strong>
+    </div>
+  </div>
+
+  <h2>📚 Academic Records</h2>
+  <div class="table-wrapper">
+    <table>
+      <tr>
+        {% if user["role"] == "admin" %}<th>👤 Student</th>{% endif %}
+        <th>📖 Subject</th>
+        <th>📝 Marks</th>
+        <th>✅ Attendance</th>
+      </tr>
+      {% for record in records %}
+        <tr>
+          {% if user["role"] == "admin" %}<td><strong>{{ record["username"] }}</strong></td>{% endif %}
+          <td>{{ record["subject"] }}</td>
+          <td>
+            <strong>{{ record["marks"] }}%</strong>
+            {% if record["marks"] >= 80 %}
+              <span style="color: #10b981;">✓</span>
+            {% elif record["marks"] >= 60 %}
+              <span style="color: #f59e0b;">⚠️</span>
+            {% else %}
+              <span style="color: #ef4444;">✗</span>
+            {% endif %}
+          </td>
+          <td>{{ record["attendance"] }}%</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <h2>🔍 Quick Actions</h2>
+  <div class="actions">
+    <a class="button" href="{{ url_for('search') }}">⚠️ Try XSS Search (Vulnerable)</a>
+    <a class="button success" href="{{ url_for('secure_search') }}">🔒 Secure Search</a>
+    {% if user["role"] == "admin" %}
+      <a class="button" href="{{ url_for('admin') }}">⚙️ Add Records</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h1>
+    {% if vulnerable %}
+      ⚠️ Vulnerable Student Search
+    {% else %}
+      ✅ Secure Student Search
+    {% endif %}
+  </h1>
+  
+  <div class="note {% if vulnerable %}warning{% endif %}">
+    <strong>{{ "⚠️ Vulnerable Implementation" if vulnerable else "🔒 Secure Implementation" }}</strong>
+    {{ note }}
+  </div>
+
+  <form method="post">
+    <label>
+      🔎 Search Student or Subject
+      <input type="text" name="search_term" value="{{ search_term }}" placeholder="alice, Mathematics, Cyber Security">
+    </label>
+    <button type="submit">🔍 Search</button>
+  </form>
+
+  {% if output %}
+    <div class="output">
+      {% if vulnerable %}
+        {{ output|safe }}
+      {% else %}
+        {{ output }}
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if results %}
+    <h2>📋 Matching Records ({{ results|length }} found)</h2>
+    <div class="table-wrapper">
+      <table>
+        <tr>
+          <th>👤 Student</th>
+          <th>📖 Subject</th>
+          <th>📝 Marks</th>
+          <th>✅ Attendance</th>
+        </tr>
+        {% for record in results %}
+          <tr>
+            <td>{{ record["username"] }}</td>
+            <td>{{ record["subject"] }}</td>
+            <td>{{ record["marks"] }}%</td>
+            <td>{{ record["attendance"] }}%</td>
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+  {% endif %}
+
+  <div class="note" style="background: #fef3c7; border-left-color: #f59e0b;">
+    <strong>🧪 Demo XSS Input:</strong>
+    <code style="display: block; background: #fff7ed; padding: 8px; margin-top: 8px; border-radius: 4px; font-family: monospace;">&lt;script&gt;alert('Hacked')&lt;/script&gt;</code>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title or "Secure Student Portal" }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="{{ url_for('dashboard') }}">Secure Student Portal</a>
+      <nav class="nav">
+        <a href="{{ url_for('login') }}">Vulnerable Login</a>
+        <a href="{{ url_for('secure_login') }}">Secure Login</a>
+        <a href="{{ url_for('search') }}">Vulnerable Search</a>
+        <a href="{{ url_for('secure_search') }}">Secure Search</a>
+        <a href="{{ url_for('admin') }}">Admin</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+      </nav>
+    </header>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

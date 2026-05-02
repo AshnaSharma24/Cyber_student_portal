@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h1>
+    {% if secure %}
+      ✅ Secure Login
+    {% else %}
+      ⚠️ Vulnerable Login
+    {% endif %}
+  </h1>
+  
+  <div class="note {% if not secure %}warning{% endif %}">
+    <strong>{{ "🔒 Secure Implementation" if secure else "⚠️ Vulnerable Implementation" }}</strong>
+    {{ note }}
+  </div>
+
+  <form method="post">
+    <label>
+      Username
+      <input type="text" name="username" required autocomplete="username" placeholder="alice">
+    </label>
+    <label>
+      Password
+      <input type="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+    </label>
+    <button type="submit">🔑 Login</button>
+  </form>
+
+  {% if message %}
+    <div class="error">{{ message }}</div>
+  {% endif %}
+
+  <div class="note" style="background: #e0e7ff; border-left-color: #4f46e5;">
+    <strong>📚 Demo Users:</strong>
+    <ul style="margin: 8px 0; padding-left: 20px;">
+      <li><strong>admin</strong> / admin123 (Admin role)</li>
+      <li><strong>alice</strong> / alicepass (Student)</li>
+      <li><strong>bob</strong> / bobpass (Student)</li>
+    </ul>
+  </div>
+</section>
+{% endblock %}

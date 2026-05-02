@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h1>🚫 403 - Access Forbidden</h1>
+  <div class="error">
+    <strong>❌ Permission Denied:</strong> Students cannot access admin pages. This is role-based access control in action!
+  </div>
+  <div class="note" style="background: #f0f9ff; border-left-color: #2563eb; margin-top: 20px;">
+    <strong>💡 Why this error?</strong>
+    <p>Your user role is not authorized to access this resource. Admin pages are restricted to administrators only.</p>
+  </div>
+  <div class="actions">
+    <a class="button" href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+  </div>
+</section>
+{% endblock %}
