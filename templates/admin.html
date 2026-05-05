@@ -7,6 +7,14 @@
     <strong>👤 Logged in as:</strong> {{ user["username"] }}
   </div>
 
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for m in messages %}
+        <div class="success">✅ {{ m }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
   <h2>🔧 Choose Implementation Mode</h2>
   <div class="actions">
     <a class="button {% if mode == 'secure' %}secondary{% endif %}" href="{{ url_for('admin', mode='vulnerable') }}">
@@ -20,7 +28,7 @@
   <div class="note {% if mode == 'vulnerable' %}warning{% endif %}">
     <strong>{{ "⚠️ Vulnerable Mode" if mode == "vulnerable" else "🔒 Secure Mode" }}</strong>
     {% if mode == "vulnerable" %}
-      Accepts records <strong>WITHOUT</strong> validating marks, attendance, or input length. Perfect for testing what happens with invalid data!
+      Accepts records <strong>WITHOUT</strong> validating marks, attendance, or input length. Useful for testing input handling.
     {% else %}
       Validates student, subject length (1-50 chars), marks (0-100), and attendance (0-100) before saving.
     {% endif %}
@@ -28,7 +36,6 @@
 
   <h2>📝 Add New Record</h2>
   <form method="post">
-    <input type="hidden" name="mode" value="{{ mode }}">
     <label>
       👤 Select Student
       <select name="user_id" {% if mode == 'secure' %}required{% endif %}>
@@ -44,19 +51,11 @@
     </label>
     <label>
       📝 Marks (0-100)
-      {% if mode == 'secure' %}
-        <input type="number" name="marks" min="0" max="100" required placeholder="85">
-      {% else %}
-        <input type="text" name="marks" placeholder="Enter any value (e.g., 999)">
-      {% endif %}
+      <input type="number" name="marks" min="0" max="100" required placeholder="85">
     </label>
     <label>
       ✅ Attendance (0-100 %)
-      {% if mode == 'secure' %}
-        <input type="number" name="attendance" min="0" max="100" required placeholder="95">
-      {% else %}
-        <input type="text" name="attendance" placeholder="Enter any value (e.g., 200)">
-      {% endif %}
+      <input type="number" name="attendance" min="0" max="100" required placeholder="95">
     </label>
     <button type="submit">💾 Add Record</button>
   </form>
@@ -66,38 +65,60 @@
 
   <h2>📋 All Student Records ({{ records|length }} total)</h2>
   <div class="table-wrapper">
-    <table>
-      <tr>
-        <th>#ID</th>
-        <th>👤 Student</th>
-        <th>📖 Subject</th>
-        <th>📝 Marks</th>
-        <th>✅ Attendance</th>
-      </tr>
-      {% for record in records %}
+    <form method="post" id="delete-form">
+      <input type="hidden" name="delete_selected" value="1">
+      <input type="hidden" name="mode" value="{{ mode }}">
+      <table>
         <tr>
-          <td>{{ record["id"] }}</td>
-          <td><strong>{{ record["username"] }}</strong></td>
-          <td>{{ record["subject"] }}</td>
-          <td>
-            <strong>{{ record["marks"] }}%</strong>
-            {% if record["marks"] > 100 or record["marks"] < 0 %}
-              <span style="color: #ef4444;">⚠️ INVALID</span>
-            {% elif record["marks"] >= 80 %}
-              <span style="color: #10b981;">✓ Good</span>
-            {% endif %}
-          </td>
-          <td>
-            {{ record["attendance"] }}%
-            {% if record["attendance"] > 100 or record["attendance"] < 0 %}
-              <span style="color: #ef4444;">⚠️ INVALID</span>
-            {% elif record["attendance"] >= 90 %}
-              <span style="color: #10b981;">✓ Excellent</span>
-            {% endif %}
-          </td>
+          <th><input type="checkbox" id="select-all"></th>
+          <th>#ID</th>
+          <th>👤 Student</th>
+          <th>📖 Subject</th>
+          <th>📝 Marks</th>
+          <th>✅ Attendance</th>
         </tr>
-      {% endfor %}
-    </table>
+        {% for record in records %}
+          <tr>
+            <td><input type="checkbox" name="record_id" value="{{ record['id'] }}"></td>
+            <td>{{ record["id"] }}</td>
+            <td><strong>{{ record["username"] }}</strong></td>
+            <td>{{ record["subject"] }}</td>
+            <td>
+              <strong>{{ record["marks"] }}%</strong>
+              {% if record["marks"] > 100 or record["marks"] < 0 %}
+                <span style="color: #ef4444;">⚠️ INVALID</span>
+              {% elif record["marks"] >= 80 %}
+                <span style="color: #10b981;">✓ Good</span>
+              {% endif %}
+            </td>
+            <td>
+              {{ record["attendance"] }}%
+              {% if record["attendance"] > 100 or record["attendance"] < 0 %}
+                <span style="color: #ef4444;">⚠️ INVALID</span>
+              {% elif record["attendance"] >= 90 %}
+                <span style="color: #10b981;">✓ Excellent</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </table>
+
+      <div class="actions" style="margin-top:12px;">
+        <button type="submit" class="button danger" onclick="return confirm('Delete selected records? This cannot be undone.')">Delete Selected</button>
+      </div>
+    </form>
   </div>
+
+  <script>
+    // Select/deselect all checkboxes
+    document.addEventListener('DOMContentLoaded', function () {
+      var selectAll = document.getElementById('select-all');
+      if (!selectAll) return;
+      selectAll.addEventListener('change', function () {
+        var checkboxes = document.querySelectorAll('input[name="record_id"]');
+        checkboxes.forEach(function (cb) { cb.checked = selectAll.checked; });
+      });
+    });
+  </script>
 </section>
 {% endblock %}

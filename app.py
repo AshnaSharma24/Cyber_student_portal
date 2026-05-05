@@ -106,27 +106,8 @@ def init_db():
         """
     )
 
-    users = [
-        ("admin", hash_password("admin123"), "admin"),
-        ("alice", hash_password("alicepass"), "student"),
-        ("bob", hash_password("bobpass"), "student"),
-    ]
-    cur.executemany(
-        "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-        users,
-    )
-
-    cur.executemany(
-        "INSERT INTO records (user_id, subject, marks, attendance) VALUES (?, ?, ?, ?)",
-        [
-            (2, "Mathematics", 91, 96),
-            (2, "Cyber Security", 88, 93),
-            (2, "Database Systems", 84, 90),
-            (3, "Mathematics", 76, 86),
-            (3, "Cyber Security", 82, 89),
-            (3, "Database Systems", 79, 84),
-        ],
-    )
+    # Do not create demo users or demo records by default.
+    # Leave the database empty so administrators can provision real accounts.
 
     conn.commit()
     conn.close()
@@ -203,6 +184,7 @@ def login():
         username = request.form.get("username", "")
         password = request.form.get("password", "")
 
+        # Vulnerable: intentionally building SQL from raw input for testing
         query = f"SELECT * FROM users WHERE username = '{username}' AND password_hash = '{password}'"
         conn = get_db()
         cur = conn.cursor()
@@ -251,7 +233,7 @@ def secure_login():
             conn.close()
             write_log("secure login blocked by account lock", user["id"])
             message = f"Account locked. Try again in {remaining} seconds."
-            return render_template("login.html", message=message, note="Secure login with parameterized SQL, bcrypt, and lockout.", secure=True)
+            return render_template("login.html", message=message, note="Secure login with parameterized SQL, bcrypt, and lockout.", secure=True, lock_seconds=remaining)
 
         if check_password(password, user["password_hash"]):
             cur.execute(
@@ -266,11 +248,13 @@ def secure_login():
 
         failed_attempts = user["failed_attempts"] + 1
         lock_value = None
+        lock_applied = False
         if failed_attempts >= MAX_FAILED_ATTEMPTS:
             lock_time = utc_now() + timedelta(seconds=LOCK_SECONDS)
             lock_value = to_db_time(lock_time)
             failed_attempts = 0
             write_log(f"account locked for {LOCK_SECONDS} seconds", user["id"])
+            lock_applied = True
 
         cur.execute(
             "UPDATE users SET failed_attempts = ?, lock_until = ? WHERE id = ?",
@@ -280,6 +264,9 @@ def secure_login():
         conn.close()
         write_log("secure login failed bad password", user["id"])
         message = "Invalid username or password."
+        if lock_applied:
+            message = f"Account locked. Try again in {LOCK_SECONDS} seconds."
+            return render_template("login.html", message=message, note="Secure login with parameterized SQL, bcrypt, and lockout.", secure=True, lock_seconds=LOCK_SECONDS)
 
     note = "Secure login: parameterized SQL, bcrypt password check, and 45-second lock after 3 failures."
     return render_template("login.html", message=message, note=note, secure=True)
@@ -382,14 +369,32 @@ def admin():
     user = admin_required()
     if not user:
         return redirect(url_for("login"))
-
     message = ""
     error = ""
     mode = request.args.get("mode", "secure")
     students = get_students()
 
     if request.method == "POST":
-        mode = request.form.get("mode", "secure")
+        # Deletion of selected records
+        if request.form.get("delete_selected") == "1":
+            ids = request.form.getlist("record_id")
+            valid_ids = [int(i) for i in ids if i.isdigit()]
+            if valid_ids:
+                conn = get_db()
+                cur = conn.cursor()
+                placeholders = ",".join(["?"] * len(valid_ids))
+                cur.execute(f"DELETE FROM records WHERE id IN ({placeholders})", tuple(valid_ids))
+                conn.commit()
+                conn.close()
+                write_log(f"admin deleted records ids={valid_ids}", user["id"])
+                # Use flash + redirect to reset form state (POST-Redirect-GET)
+                flash(f"Deleted {len(valid_ids)} record(s).")
+                return redirect(url_for('dashboard'))
+            else:
+                error = "No valid records selected for deletion."
+            mode = request.form.get("mode", "secure")
+        else:
+            mode = request.form.get("mode", "secure")
         user_id = request.form.get("user_id", "")
         subject = request.form.get("subject", "")
         marks = request.form.get("marks", "")
@@ -445,7 +450,8 @@ def admin():
                 conn.commit()
                 conn.close()
                 write_log(f"secure admin added record subject={subject.strip()}", user["id"])
-                message = "Record added securely after validation."
+                flash("Record added securely.")
+                return redirect(url_for('dashboard'))
 
     conn = get_db()
     cur = conn.cursor()
@@ -478,3 +484,17 @@ def forbidden(_error):
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+@app.after_request
+def set_security_headers(response):
+    # Prevent caching of sensitive pages so back-button cannot show protected content
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
+    # Additional security headers
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
